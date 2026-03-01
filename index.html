@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拿貨單管理系統</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2em;
+        }
+
+        .file-section {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 2px dashed #d1d5db;
+        }
+
+        .file-section.has-data {
+            border-color: #10b981;
+            background: #d1fae5;
+        }
+
+        .file-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .file-input-label {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .file-input-label:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-info {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            color: #667eea;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .filter-section {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-group label {
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .filter-input {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 150px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #059669;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover:not(:disabled) {
+            background: #d97706;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #4b5563;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        tr.selected {
+            background: #dbeafe;
+        }
+
+        tr.selected:hover {
+            background: #bfdbfe;
+        }
+
+        tr.hidden {
+            display: none;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="date"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .autocomplete-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1001;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: none;
+            margin-top: -1px;
+        }
+
+        .autocomplete-dropdown.show {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .autocomplete-item:hover {
+            background: #f3f4f6;
+        }
+
+        .autocomplete-item.selected {
+            background: #dbeafe;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .message {
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .message.active {
+            display: block;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .selected-count {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .toggle-filter {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toggle-filter input[type="checkbox"] {
+            width: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📦 拿貨單管理系統</h1>
+        
+        <div id="message" class="message"></div>
+
+        <div class="file-section" id="fileSection">
+            <div class="file-input-wrapper">
+                <label for="fileInput" class="file-input-label">📁 選擇 Excel 檔案</label>
+                <input type="file" id="fileInput" accept=".xlsx,.xls" />
+                <span class="file-info" id="fileInfo">尚未載入檔案</span>
+                <button class="btn btn-secondary" onclick="exportToExcel()" id="exportBtn" disabled>💾 匯出 Excel</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('待結款')">待結款</button>
+            <button class="tab" onclick="switchTab('库存')">库存</button>
+        </div>
+
+        <div id="待結款" class="tab-content active">
+            <div class="filter-section">
+                <div class="filter-group">
+                    <label>名稱篩選:</label>
+                    <select class="filter-select" id="filterName" onchange="applyFilters()">
+                        <option value="">全部</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>顏色篩選:</label>
+                    <select class="filter-select" id="filterColor" onchange="applyFilters()">
+                        <option value="">全部</option>
+                    </select>
+                </div>
+                <div class="toggle-filter">
+                    <input type="checkbox" id="showZero" onchange="applyFilters()">
+                    <label for="showZero">顯示數量為 0 的記錄</label>
+                </div>
+                <button class="btn btn-secondary" onclick="clearFilters()">清除篩選</button>
+            </div>
+            <div class="toolbar">
+                <button class="btn btn-primary" onclick="addRow('待結款')">➕ 新增</button>
+                <button class="btn btn-success" onclick="editSelectedRow('待結款')">✏️ 編輯</button>
+                <button class="btn btn-warning" onclick="clearAmount('待結款')">🔄 清零</button>
+                <button class="btn btn-danger" onclick="deleteSelectedRows('待結款')">🗑️ 刪除</button>
+                <button class="btn btn-secondary" onclick="sortData('待結款')">🔀 排序</button>
+                <button class="btn btn-primary" onclick="showSumCalculation()">📊 計算總和</button>
+            </div>
+            <div id="table-待結款"></div>
+        </div>
+
+        <div id="库存" class="tab-content">
+            <div class="filter-section">
+                <div class="filter-group">
+                    <label>名稱篩選:</label>
+                    <select class="filter-select" id="filterName库存" onchange="applyFilters()">
+                        <option value="">全部</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>顏色篩選:</label>
+                    <select class="filter-select" id="filterColor库存" onchange="applyFilters()">
+                        <option value="">全部</option>
+                    </select>
+                </div>
+                <button class="btn btn-secondary" onclick="clearFilters('库存')">清除篩選</button>
+            </div>
+            <div class="toolbar">
+                <button class="btn btn-primary" onclick="addRow('库存')">➕ 新增</button>
+                <button class="btn btn-success" onclick="editSelectedRow('库存')">✏️ 編輯</button>
+                <button class="btn btn-danger" onclick="deleteSelectedRows('库存')">🗑️ 刪除</button>
+                <button class="btn btn-secondary" onclick="sortData('库存')">🔀 排序</button>
+            </div>
+            <div id="table-库存"></div>
+        </div>
+
+        <div class="status-bar">
+            <div class="selected-count" id="selectedCount"></div>
+            <div>顯示: <span id="displayCount">0</span> / <span id="totalCount">0</span> 筆記錄</div>
+        </div>
+    </div>
+
+    <!-- Modal for Add/Edit -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" id="modalTitle">新增記錄</div>
+            <form id="rowForm">
+                <div id="formFields"></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Sum Calculation -->
+    <div id="sumModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">📊 數量總和計算</div>
+            <div style="margin-bottom: 20px;">
+                <div class="form-group">
+                    <label>分組方式:</label>
+                    <div style="display: flex; gap: 15px; margin-top: 10px;">
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="checkbox" id="groupByName" checked> 按名稱分組
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; font-weight: normal;">
+                            <input type="checkbox" id="groupByColor" checked> 按顏色分組
+                        </label>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="calculateSum()" style="margin-top: 10px;">計算</button>
+            </div>
+            <div id="sumResults" style="max-height: 400px; overflow-y: auto;"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeSumModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let excelData = {
+            '待結款': { columns: ['名称', '颜色', '价格', '数量', '發貨日期', '退貨日期'], data: [] },
+            '库存': { columns: ['名称', '颜色', '进库', '出库', '日期', '备注'], data: [] }
+        };
+        let selectedRows = {
+            '待結款': new Set(),
+            '库存': new Set()
+        };
+        let currentSheet = '待結款';
+        let editingRowIndex = -1;
+        let nameList = new Set();
+        let colorList = new Set();
+        let fileHandle = null;
+        let directoryHandle = null;
+
+        /** Convert Excel date (serial or string) to YYYY-MM-DD */
+        function formatExcelDate(value) {
+            if (value == null || value === '') return '';
+            if (typeof value === 'number') {
+                const date = XLSX.SSF.parse_date_code(value);
+                if (date) {
+                    const y = date.y, m = String(date.m).padStart(2, '0'), d = String(date.d).padStart(2, '0');
+                    return `${y}-${m}-${d}`;
+                }
+            }
+            const s = String(value).trim().replace(/\./g, '-').replace(/\//g, '-');
+            return s || '';
+        }
+
+        // File input handler
+        document.getElementById('fileInput').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Try to get directory handle if File System Access API is available
+            if ('showOpenFilePicker' in window) {
+                try {
+                    // Note: We can't directly get the directory from a regular file input
+                    // But we can store the file reference for later use
+                    fileHandle = null;
+                    directoryHandle = null;
+                } catch (err) {
+                    console.log('Could not get directory handle:', err);
+                }
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Read all sheets
+                    workbook.SheetNames.forEach(sheetName => {
+                        const worksheet = workbook.Sheets[sheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                        
+                        if (jsonData.length > 0) {
+                            let columns = jsonData[0];
+                            let rows = jsonData.slice(1).map(row => {
+                                // Ensure row has same length as columns
+                                while (row.length < columns.length) row.push('');
+                                return row.slice(0, columns.length);
+                            });
+                            
+                            // Normalize 待結款: require 名称, 颜色, 价格, 数量, 发货日期, 退货日期; normalize to 發貨日期/退貨日期; parse dates
+                            if (sheetName === '待結款') {
+                                const rawCols = columns.map(c => (c != null ? String(c).trim() : ''));
+                                const colIndex = (name) => {
+                                    const i = rawCols.indexOf(name);
+                                    if (i >= 0) return i;
+                                    const alt = name.replace(/發/g, '发').replace(/貨/g, '货');
+                                    return rawCols.indexOf(alt);
+                                };
+                                const required = ['名称', '颜色', '价格', '数量', '发货日期', '退货日期'];
+                                const missing = required.filter(c => {
+                                    if (rawCols.indexOf(c) >= 0) return false;
+                                    const trad = c.replace(/发/g, '發').replace(/货/g, '貨');
+                                    return rawCols.indexOf(trad) < 0;
+                                });
+                                if (missing.length > 0) {
+                                    showMessage('待結款工作表缺少必要欄位: ' + missing.join(', ') + '。需要: 名称, 颜色, 价格, 数量, 发货日期, 退货日期', 'error');
+                                }
+                                columns = rawCols.map(c => {
+                                    if (c === '发货日期') return '發貨日期';
+                                    if (c === '退货日期') return '退貨日期';
+                                    return c;
+                                });
+                                const idx发货 = columns.indexOf('發貨日期');
+                                const idx退货 = columns.indexOf('退貨日期');
+                                [idx发货, idx退货].forEach(dateColIndex => {
+                                    if (dateColIndex >= 0) {
+                                        rows = rows.map(row => {
+                                            const v = row[dateColIndex];
+                                            if (v !== undefined && v !== null && v !== '') {
+                                                row[dateColIndex] = formatExcelDate(v);
+                                            }
+                                            return row;
+                                        });
+                                    }
+                                });
+                            }
+                            
+                            excelData[sheetName] = { columns, data: rows };
+                            if (!selectedRows[sheetName]) {
+                                selectedRows[sheetName] = new Set();
+                            }
+                            
+                            // Debug: log columns for inventory sheet
+                            if (sheetName === '库存') {
+                                console.log('库存工作表列名:', columns);
+                                console.log('列名索引:', {
+                                    '名称': columns.indexOf('名称'),
+                                    '颜色': columns.indexOf('颜色'),
+                                    '进库': columns.indexOf('进库'),
+                                    '库存': columns.indexOf('库存'),
+                                    '出库': columns.indexOf('出库'),
+                                    '日期': columns.indexOf('日期')
+                                });
+                                console.log('前3行数据:', rows.slice(0, 3));
+                            }
+                        }
+                    });
+
+                    const has待結款 = !!excelData['待結款'];
+                    const has库存 = !!excelData['库存'];
+                    if (!has待結款 || !has库存) {
+                        const missing = [];
+                        if (!has待結款) missing.push('待結款');
+                        if (!has库存) missing.push('库存');
+                        showMessage('提醒：此檔案沒有「' + missing.join('」或「') + '」工作表，請在 Excel 中將對應的工作表命名為「待結款」或「库存」後再載入。', 'error');
+                    }
+
+                    updateNameColorLists();
+                    renderTables();
+                    updateFilterDropdowns();
+                    document.getElementById('fileSection').classList.add('has-data');
+                    document.getElementById('fileInfo').textContent = `已載入: ${file.name}`;
+                    document.getElementById('exportBtn').disabled = false;
+                    if (has待結款 && has库存) {
+                        showMessage('檔案載入成功！', 'success');
+                    }
+                } catch (error) {
+                    showMessage('讀取檔案失敗: ' + error.message, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function updateNameColorLists() {
+            nameList.clear();
+            colorList.clear();
+            
+            // Update from both 待結款 and 库存
+            if (excelData['待結款'] && excelData['待結款'].data) {
+                excelData['待結款'].data.forEach(row => {
+                    if (row[0]) nameList.add(row[0]);
+                    if (row[1]) colorList.add(row[1]);
+                });
+            }
+            
+            if (excelData['库存'] && excelData['库存'].data) {
+                const columns = excelData['库存'].columns;
+                const nameIndex = columns.indexOf('名称');
+                const colorIndex = columns.indexOf('颜色');
+                if (nameIndex >= 0 && colorIndex >= 0) {
+                    excelData['库存'].data.forEach(row => {
+                        if (row[nameIndex]) nameList.add(row[nameIndex]);
+                        if (row[colorIndex]) colorList.add(row[colorIndex]);
+                    });
+                }
+            }
+            
+            // Update filter dropdowns
+            updateFilterDropdowns();
+        }
+
+        function updateFilterDropdowns() {
+            // Update 待結款 filters
+            const nameSelect = document.getElementById('filterName');
+            const colorSelect = document.getElementById('filterColor');
+            
+            if (nameSelect && colorSelect) {
+                const selectedName = nameSelect.value;
+                const selectedColor = colorSelect.value;
+                
+                nameSelect.innerHTML = '<option value="">全部</option>';
+                Array.from(nameList).sort().forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    if (name === selectedName) option.selected = true;
+                    nameSelect.appendChild(option);
+                });
+                
+                colorSelect.innerHTML = '<option value="">全部</option>';
+                Array.from(colorList).sort().forEach(color => {
+                    const option = document.createElement('option');
+                    option.value = color;
+                    option.textContent = color;
+                    if (color === selectedColor) option.selected = true;
+                    colorSelect.appendChild(option);
+                });
+            }
+            
+            // Update 库存 filters
+            const nameSelect库存 = document.getElementById('filterName库存');
+            const colorSelect库存 = document.getElementById('filterColor库存');
+            
+            if (nameSelect库存 && colorSelect库存) {
+                const selectedName = nameSelect库存.value;
+                const selectedColor = colorSelect库存.value;
+                
+                nameSelect库存.innerHTML = '<option value="">全部</option>';
+                Array.from(nameList).sort().forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    if (name === selectedName) option.selected = true;
+                    nameSelect库存.appendChild(option);
+                });
+                
+                colorSelect库存.innerHTML = '<option value="">全部</option>';
+                Array.from(colorList).sort().forEach(color => {
+                    const option = document.createElement('option');
+                    option.value = color;
+                    option.textContent = color;
+                    if (color === selectedColor) option.selected = true;
+                    colorSelect库存.appendChild(option);
+                });
+            }
+        }
+
+        function clearFilters(sheetName) {
+            if (sheetName === '库存') {
+                document.getElementById('filterName库存').value = '';
+                document.getElementById('filterColor库存').value = '';
+            } else {
+                document.getElementById('filterName').value = '';
+                document.getElementById('filterColor').value = '';
+                document.getElementById('showZero').checked = false;
+            }
+            applyFilters();
+        }
+
+        function sortData(sheetName) {
+            if (!excelData[sheetName] || !excelData[sheetName].data) return;
+            
+            const columns = excelData[sheetName].columns;
+            const nameIndex = columns.indexOf('名称');
+            const colorIndex = columns.indexOf('颜色');
+            let dateIndex = -1;
+            
+            // Find date column
+            if (sheetName === '待結款') {
+                dateIndex = columns.indexOf('發貨日期');
+            } else if (sheetName === '库存') {
+                dateIndex = columns.indexOf('日期');
+            }
+            
+            if (nameIndex === -1 || colorIndex === -1) {
+                showMessage('無法排序：缺少必要的列', 'error');
+                return;
+            }
+            
+            excelData[sheetName].data.sort((a, b) => {
+                // Sort by 名称 first
+                const nameA = String(a[nameIndex] || '').trim();
+                const nameB = String(b[nameIndex] || '').trim();
+                if (nameA !== nameB) {
+                    return nameA.localeCompare(nameB, 'zh-CN');
+                }
+                
+                // Then by 颜色
+                const colorA = String(a[colorIndex] || '').trim();
+                const colorB = String(b[colorIndex] || '').trim();
+                if (colorA !== colorB) {
+                    return colorA.localeCompare(colorB, 'zh-CN');
+                }
+                
+                // Finally by date if available
+                if (dateIndex >= 0) {
+                    const dateA = String(a[dateIndex] || '').trim();
+                    const dateB = String(b[dateIndex] || '').trim();
+                    if (dateA && dateB) {
+                        // Convert date strings to comparable format
+                        const dateAValue = dateA.replace(/\./g, '-').replace(/\//g, '-');
+                        const dateBValue = dateB.replace(/\./g, '-').replace(/\//g, '-');
+                        return dateAValue.localeCompare(dateBValue);
+                    }
+                    // Empty dates go to end
+                    if (!dateA && dateB) return 1;
+                    if (dateA && !dateB) return -1;
+                }
+                
+                return 0;
+            });
+            
+            selectedRows[sheetName].clear();
+            renderTables();
+            showMessage('數據已排序', 'success');
+        }
+
+        function calculateRemainingStock(name, color) {
+            // Calculate total 进库 minus total 出库 for same 名称 and 颜色
+            let totalIn = 0;
+            let totalOut = 0;
+            
+            if (!excelData['库存'] || !excelData['库存'].data) return 0;
+            
+            const columns = excelData['库存'].columns;
+            const nameIndex = columns.indexOf('名称');
+            const colorIndex = columns.indexOf('颜色');
+            
+            // Try to find the correct column indices - support multiple possible names
+            let inIndex = columns.indexOf('进库');
+            if (inIndex === -1) {
+                inIndex = columns.indexOf('库存');  // 舊版列名
+            }
+            // If still not found, try to infer from data structure (3rd column typically)
+            if (inIndex === -1 && columns.length >= 3) {
+                inIndex = 2;  // 假設第三列是进库
+            }
+            
+            let outIndex = columns.indexOf('出库');
+            // If not found, try to infer from data structure (4th column typically)
+            if (outIndex === -1 && columns.length >= 4) {
+                outIndex = 3;  // 假設第四列是出库
+            }
+            
+            // Check if essential columns are found - use index fallback for 进库 and 出库
+            if (nameIndex === -1 || colorIndex === -1) {
+                console.warn('無法找到名称或颜色列:', {
+                    columns: columns,
+                    nameIndex, colorIndex
+                });
+                return 0;
+            }
+            
+            // If inIndex or outIndex not found, try to use position-based inference
+            if (inIndex === -1) {
+                // Try to find by checking column values - 进库 should be numeric and in position 2
+                if (columns.length > 2) {
+                    inIndex = 2;
+                } else {
+                    console.warn('無法找到进库列:', columns);
+                    return 0;
+                }
+            }
+            
+            if (outIndex === -1) {
+                // Try to find by checking column values - 出库 should be numeric and in position 3
+                if (columns.length > 3) {
+                    outIndex = 3;
+                } else {
+                    console.warn('無法找到出库列:', columns);
+                    return 0;
+                }
+            }
+            
+            const nameStr = String(name).trim();
+            const colorStr = String(color).trim();
+            
+            excelData['库存'].data.forEach((row, idx) => {
+                const rowName = String(row[nameIndex] || '').trim();
+                const rowColor = String(row[colorIndex] || '').trim();
+                
+                if (rowName === nameStr && rowColor === colorStr) {
+                    // Get raw values
+                    const inRaw = row[inIndex];
+                    const outRaw = row[outIndex];
+                    
+                    // Parse values - handle both string and number
+                    const inValue = typeof inRaw === 'number' ? inRaw : parseFloat(String(inRaw || '').replace(/,/g, '')) || 0;
+                    const outRawValue = typeof outRaw === 'number' ? outRaw : parseFloat(String(outRaw || '').replace(/,/g, '')) || 0;
+                    
+                    // Out can be positive or negative - if negative, it's already subtracted
+                    // If positive, it represents outgoing quantity
+                    const outValue = Math.abs(outRawValue);
+                    
+                    totalIn += inValue;
+                    totalOut += outValue;
+                }
+            });
+            
+            const result = totalIn - totalOut;
+            return result;
+        }
+
+        function renderTables() {
+            for (const [sheetName, sheetData] of Object.entries(excelData)) {
+                const container = document.getElementById(`table-${sheetName}`);
+                if (!container) continue;
+                const columns = sheetData.columns;
+                const rows = sheetData.data;
+
+                let html = '<table><thead><tr>';
+                columns.forEach(col => {
+                    html += `<th>${col}</th>`;
+                });
+                
+                // Add 剩余库存 column for 库存 sheet
+                if (sheetName === '库存') {
+                    html += '<th>剩余库存</th>';
+                }
+                
+                html += '<th>選擇</th></tr></thead><tbody>';
+
+                const rowSelection = selectedRows[sheetName] || new Set();
+                rows.forEach((row, index) => {
+                    const isSelected = rowSelection.has(index);
+                    const isHidden = shouldHideRow(sheetName, row, index);
+                    html += `<tr class="${isSelected ? 'selected' : ''} ${isHidden ? 'hidden' : ''}" data-index="${index}">`;
+                    row.forEach(cell => {
+                        html += `<td>${cell || ''}</td>`;
+                    });
+                    
+                    // Add calculated 剩余库存 for 库存 sheet
+                    if (sheetName === '库存') {
+                        const nameIndex = columns.indexOf('名称');
+                        const colorIndex = columns.indexOf('颜色');
+                        const name = row[nameIndex] || '';
+                        const color = row[colorIndex] || '';
+                        const remainingStock = calculateRemainingStock(name, color);
+                        html += `<td style="font-weight: 600; color: ${remainingStock < 0 ? '#ef4444' : remainingStock === 0 ? '#f59e0b' : '#10b981'}">${remainingStock}</td>`;
+                    }
+                    
+                    html += `<td><input type="checkbox" ${isSelected ? 'checked' : ''} 
+                             onchange="toggleRowSelection('${sheetName}', ${index}, this.checked)"></td>`;
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            }
+            updateSelectedCount();
+            updateDisplayCount();
+        }
+
+        function shouldHideRow(sheetName, row, index) {
+            // Handle 待結款 filters
+            if (sheetName === '待結款') {
+                const filterNameEl = document.getElementById('filterName');
+                const filterColorEl = document.getElementById('filterColor');
+                const showZeroEl = document.getElementById('showZero');
+                
+                if (!filterNameEl || !filterColorEl || !showZeroEl) return false;
+                
+                const filterName = filterNameEl.value;
+                const filterColor = filterColorEl.value;
+                const showZero = showZeroEl.checked;
+                
+                // Check if 数量 is 0 (default hide)
+                const cols = excelData['待結款'].columns;
+                const qtyIdx = cols.indexOf('数量');
+                const qty = qtyIdx >= 0 ? (parseFloat(row[qtyIdx]) || 0) : 0;
+                if (!showZero && qty === 0) return true;
+                
+                // Check name filter (exact match for select)
+                if (filterName && String(row[0] || '') !== filterName) {
+                    return true;
+                }
+                
+                // Check color filter (exact match for select)
+                if (filterColor && String(row[1] || '') !== filterColor) {
+                    return true;
+                }
+                
+                return false;
+            }
+            
+            // Handle 库存 filters
+            if (sheetName === '库存') {
+                const filterNameEl = document.getElementById('filterName库存');
+                const filterColorEl = document.getElementById('filterColor库存');
+                
+                if (!filterNameEl || !filterColorEl) return false;
+                
+                const filterName = filterNameEl.value;
+                const filterColor = filterColorEl.value;
+                
+                const columns = excelData['库存'].columns;
+                const nameIndex = columns.indexOf('名称');
+                const colorIndex = columns.indexOf('颜色');
+                
+                if (nameIndex < 0 || colorIndex < 0) return false;
+                
+                // Check name filter (exact match for select)
+                if (filterName && String(row[nameIndex] || '') !== filterName) {
+                    return true;
+                }
+                
+                // Check color filter (exact match for select)
+                if (filterColor && String(row[colorIndex] || '') !== filterColor) {
+                    return true;
+                }
+                
+                return false;
+            }
+            
+            return false;
+        }
+
+        function applyFilters() {
+            renderTables();
+        }
+
+        function toggleRowSelection(sheetName, index, checked) {
+            if (checked) {
+                selectedRows[sheetName].add(index);
+            } else {
+                selectedRows[sheetName].delete(index);
+            }
+            renderTables();
+        }
+
+        function switchTab(sheetName) {
+            currentSheet = sheetName;
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(sheetName).classList.add('active');
+            updateSelectedCount();
+            updateDisplayCount();
+        }
+
+        function addRow(sheetName) {
+            currentSheet = sheetName;
+            editingRowIndex = -1;
+            openModal('新增記錄', sheetName);
+        }
+
+        function editSelectedRow(sheetName) {
+            const selected = Array.from(selectedRows[sheetName]);
+            if (selected.length !== 1) {
+                showMessage('請選擇一行進行編輯', 'error');
+                return;
+            }
+            
+            currentSheet = sheetName;
+            editingRowIndex = selected[0];
+            openModal('編輯記錄', sheetName, editingRowIndex);
+        }
+
+        function clearAmount(sheetName) {
+            const selected = Array.from(selectedRows[sheetName]);
+            if (selected.length === 0) {
+                showMessage('請選擇要清零的行', 'error');
+                return;
+            }
+
+            const columns = excelData[sheetName].columns;
+            const qtyIndex = columns.indexOf('数量');
+            const dateIndex = columns.indexOf('發貨日期');
+            const returnDateIndex = columns.indexOf('退貨日期');
+
+            selected.forEach(index => {
+                if (qtyIndex >= 0) excelData[sheetName].data[index][qtyIndex] = 0;
+                if (dateIndex >= 0) excelData[sheetName].data[index][dateIndex] = '';
+                if (returnDateIndex >= 0) excelData[sheetName].data[index][returnDateIndex] = '';
+            });
+
+            selectedRows[sheetName].clear();
+            renderTables();
+            showMessage(`成功清零 ${selected.length} 行`, 'success');
+        }
+
+        function deleteSelectedRows(sheetName) {
+            const selected = Array.from(selectedRows[sheetName]);
+            if (selected.length === 0) {
+                showMessage('請選擇要刪除的行', 'error');
+                return;
+            }
+
+            if (!confirm(`確定要刪除 ${selected.length} 行嗎？`)) {
+                return;
+            }
+
+            // Delete in reverse order to maintain indices
+            selected.sort((a, b) => b - a).forEach(index => {
+                excelData[sheetName].data.splice(index, 1);
+            });
+
+            selectedRows[sheetName].clear();
+            updateNameColorLists();
+            renderTables();
+            showMessage(`成功刪除 ${selected.length} 行`, 'success');
+        }
+
+        function createAutocompleteInput(columnName, colIndex, currentValue, isName) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'form-group';
+            
+            const label = document.createElement('label');
+            label.textContent = columnName;
+            
+            const inputWrapper = document.createElement('div');
+            inputWrapper.className = 'autocomplete-wrapper';
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.name = columnName;
+            input.id = `input_${colIndex}`;
+            input.value = currentValue || '';
+            input.autocomplete = 'off';
+            input.required = true;
+            
+            const dropdown = document.createElement('div');
+            dropdown.className = 'autocomplete-dropdown';
+            dropdown.id = `dropdown_${colIndex}`;
+            
+            const list = isName ? Array.from(nameList) : Array.from(colorList);
+            
+            input.addEventListener('input', function() {
+                const value = this.value.toLowerCase();
+                const filtered = list.filter(item => 
+                    item.toLowerCase().includes(value)
+                ).slice(0, 10);
+                
+                dropdown.innerHTML = '';
+                if (filtered.length > 0 && value) {
+                    filtered.forEach(item => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'autocomplete-item';
+                        itemDiv.textContent = item;
+                        itemDiv.onclick = function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            input.value = item;
+                            dropdown.classList.remove('show');
+                            input.focus();
+                        };
+                        dropdown.appendChild(itemDiv);
+                    });
+                    dropdown.classList.add('show');
+                } else if (value === '') {
+                    // Show all options when input is empty
+                    list.slice(0, 15).forEach(item => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'autocomplete-item';
+                        itemDiv.textContent = item;
+                        itemDiv.onclick = function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            input.value = item;
+                            dropdown.classList.remove('show');
+                            input.focus();
+                        };
+                        dropdown.appendChild(itemDiv);
+                    });
+                    dropdown.classList.add('show');
+                } else {
+                    dropdown.classList.remove('show');
+                }
+            });
+            
+            input.addEventListener('focus', function() {
+                const value = this.value.toLowerCase();
+                const filtered = list.filter(item => 
+                    item.toLowerCase().includes(value)
+                ).slice(0, 15);
+                
+                dropdown.innerHTML = '';
+                if (filtered.length > 0) {
+                    filtered.forEach(item => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'autocomplete-item';
+                        itemDiv.textContent = item;
+                        itemDiv.onclick = function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            input.value = item;
+                            dropdown.classList.remove('show');
+                            input.focus();
+                        };
+                        dropdown.appendChild(itemDiv);
+                    });
+                    dropdown.classList.add('show');
+                }
+            });
+            
+            input.addEventListener('blur', function() {
+                setTimeout(() => dropdown.classList.remove('show'), 200);
+            });
+            
+            input.addEventListener('keydown', function(e) {
+                const items = dropdown.querySelectorAll('.autocomplete-item');
+                let selectedIndex = Array.from(items).findIndex(item => item.classList.contains('selected'));
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    items.forEach(item => item.classList.remove('selected'));
+                    selectedIndex = (selectedIndex + 1) % items.length;
+                    if (items[selectedIndex]) {
+                        items[selectedIndex].classList.add('selected');
+                        items[selectedIndex].scrollIntoView({ block: 'nearest' });
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    items.forEach(item => item.classList.remove('selected'));
+                    selectedIndex = selectedIndex <= 0 ? items.length - 1 : selectedIndex - 1;
+                    if (items[selectedIndex]) {
+                        items[selectedIndex].classList.add('selected');
+                        items[selectedIndex].scrollIntoView({ block: 'nearest' });
+                    }
+                } else if (e.key === 'Enter' && selectedIndex >= 0 && items[selectedIndex]) {
+                    e.preventDefault();
+                    input.value = items[selectedIndex].textContent;
+                    dropdown.classList.remove('show');
+                }
+            });
+            
+            inputWrapper.appendChild(input);
+            inputWrapper.appendChild(dropdown);
+            wrapper.appendChild(label);
+            wrapper.appendChild(inputWrapper);
+            
+            return wrapper;
+        }
+
+        function openModal(title, sheetName, rowIndex = -1) {
+            document.getElementById('modalTitle').textContent = title;
+            const columns = excelData[sheetName].columns;
+            const formFields = document.getElementById('formFields');
+            
+            formFields.innerHTML = '';
+            
+            columns.forEach((col, colIndex) => {
+                let formGroup;
+                
+                // For 待結款 and 库存 sheets, use autocomplete for 名称 and 颜色
+                if ((col === '名称' || col === '颜色') && (sheetName === '待結款' || sheetName === '库存')) {
+                    formGroup = createAutocompleteInput(
+                        col, 
+                        colIndex, 
+                        rowIndex >= 0 ? excelData[sheetName].data[rowIndex][colIndex] : '',
+                        col === '名称'
+                    );
+                } else {
+                    formGroup = document.createElement('div');
+                    formGroup.className = 'form-group';
+                    
+                    const label = document.createElement('label');
+                    label.textContent = col;
+                    
+                    let input;
+                    if (col.includes('日期')) {
+                        input = document.createElement('input');
+                        input.type = 'date';
+                    } else if (col.includes('数量') || col === '进库' || col === '出库' || col === '价格') {
+                        input = document.createElement('input');
+                        input.type = 'number';
+                        input.step = col === '价格' ? '0.01' : '1';
+                        input.min = '0';
+                    } else {
+                        input = document.createElement('input');
+                        input.type = 'text';
+                    }
+                    
+                    input.name = col;
+                    input.id = `input_${colIndex}`;
+                    
+                    if (rowIndex >= 0) {
+                        const value = excelData[sheetName].data[rowIndex][colIndex];
+                        if (col.includes('日期') && value) {
+                            // Convert date format
+                            const dateStr = String(value).replace(/\./g, '-').replace(/\//g, '-');
+                            input.value = dateStr;
+                        } else {
+                            input.value = value || '';
+                        }
+                    }
+                    
+                    if (col !== '备注') {
+                        input.required = true;
+                    }
+                    
+                    formGroup.appendChild(label);
+                    formGroup.appendChild(input);
+                }
+                
+                formFields.appendChild(formGroup);
+            });
+
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+            editingRowIndex = -1;
+        }
+
+        document.getElementById('rowForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const columns = excelData[currentSheet].columns;
+            const newRow = columns.map((col, colIndex) => {
+                let value = formData.get(col);
+                
+                // Convert date format back if needed
+                if (col.includes('日期') && value) {
+                    value = value.replace(/-/g, '.');
+                }
+                
+                // Convert number fields
+                if (col.includes('数量') || col === '进库' || col === '出库' || col === '价格') {
+                    value = parseFloat(value) || 0;
+                }
+                
+                return value || '';
+            });
+
+            if (editingRowIndex >= 0) {
+                excelData[currentSheet].data[editingRowIndex] = newRow;
+                showMessage('記錄已更新', 'success');
+            } else {
+                excelData[currentSheet].data.push(newRow);
+                showMessage('記錄已新增', 'success');
+            }
+
+            updateNameColorLists();
+            updateFilterDropdowns();
+            selectedRows[currentSheet].clear();
+            renderTables();
+            closeModal();
+        });
+
+        async function exportToExcel() {
+            try {
+                const workbook = XLSX.utils.book_new();
+                
+                for (const [sheetName, sheetData] of Object.entries(excelData)) {
+                    const wsData = [sheetData.columns, ...sheetData.data];
+                    const worksheet = XLSX.utils.aoa_to_sheet(wsData);
+                    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+                }
+                
+                // Format filename as 拿貨單_YYYY-MM-DD.xlsx
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const filename = `拿貨單_${year}-${month}-${day}.xlsx`;
+                
+                // Try to save to the same folder as the HTML file or loaded file
+                try {
+                    // Check if File System Access API is available (for modern browsers)
+                    if ('showSaveFilePicker' in window) {
+                        let saveOptions = {
+                            suggestedName: filename,
+                            types: [{
+                                description: 'Excel files',
+                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
+                            }]
+                        };
+                        
+                        // If we have a directory handle, try to use it (though showSaveFilePicker doesn't support startIn directly)
+                        // We'll use the suggested name which should help the user save in the right place
+                        const fileHandle = await window.showSaveFilePicker(saveOptions);
+                        
+                        const writable = await fileHandle.createWritable();
+                        const blob = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
+                        await writable.write(new Blob([blob], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+                        await writable.close();
+                        showMessage(`成功匯出: ${filename}`, 'success');
+                    } else {
+                        // Fallback to download method
+                        // For local HTML files, try to determine the directory from the HTML file location
+                        const htmlPath = window.location.href;
+                        if (htmlPath.startsWith('file://')) {
+                            // Extract directory path from file:// URL
+                            try {
+                                const url = new URL(htmlPath);
+                                const pathParts = url.pathname.split('/');
+                                pathParts.pop(); // Remove filename
+                                const dirPath = pathParts.join('/');
+                                // Note: We can't directly write to file system, but we can suggest the filename
+                                XLSX.writeFile(workbook, filename);
+                                showMessage(`成功匯出: ${filename} (請檢查下載資料夾或選擇儲存位置)`, 'success');
+                            } catch (e) {
+                                XLSX.writeFile(workbook, filename);
+                                showMessage(`成功匯出: ${filename}`, 'success');
+                            }
+                        } else {
+                            XLSX.writeFile(workbook, filename);
+                            showMessage(`成功匯出: ${filename}`, 'success');
+                        }
+                    }
+                } catch (saveError) {
+                    // If user cancels, don't show error
+                    if (saveError.name === 'AbortError') {
+                        return;
+                    }
+                    // Otherwise, fall back to download method
+                    XLSX.writeFile(workbook, filename);
+                    showMessage(`成功匯出: ${filename}`, 'success');
+                }
+            } catch (error) {
+                showMessage('匯出失敗: ' + error.message, 'error');
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type} active`;
+            
+            setTimeout(() => {
+                messageEl.classList.remove('active');
+            }, 3000);
+        }
+
+        function updateSelectedCount() {
+            const count = selectedRows[currentSheet].size;
+            document.getElementById('selectedCount').textContent = 
+                count > 0 ? `已選擇: ${count} 行` : '';
+        }
+
+        function updateDisplayCount() {
+            const rows = excelData[currentSheet].data;
+            let visibleCount = 0;
+            
+            if (currentSheet === '待結款') {
+                rows.forEach((row, index) => {
+                    if (!shouldHideRow(currentSheet, row, index)) {
+                        visibleCount++;
+                    }
+                });
+            } else {
+                visibleCount = rows.length;
+            }
+            
+            document.getElementById('displayCount').textContent = visibleCount;
+            document.getElementById('totalCount').textContent = rows.length;
+        }
+
+        function showSumCalculation() {
+            document.getElementById('sumModal').classList.add('active');
+            calculateSum();
+        }
+
+        function closeSumModal() {
+            document.getElementById('sumModal').classList.remove('active');
+        }
+
+        function calculateSum() {
+            const groupByName = document.getElementById('groupByName').checked;
+            const groupByColor = document.getElementById('groupByColor').checked;
+            const resultsDiv = document.getElementById('sumResults');
+            
+            if (!excelData['待結款'] || !excelData['待結款'].data || excelData['待結款'].data.length === 0) {
+                resultsDiv.innerHTML = '<p style="color: #666; padding: 20px; text-align: center;">沒有數據可計算</p>';
+                return;
+            }
+
+            const columns = excelData['待結款'].columns;
+            const nameIndex = columns.indexOf('名称');
+            const colorIndex = columns.indexOf('颜色');
+            const qtyIndex = columns.indexOf('数量');
+            const priceIndex = columns.indexOf('价格');
+
+            if (nameIndex === -1 || colorIndex === -1 || qtyIndex === -1) {
+                resultsDiv.innerHTML = '<p style="color: #ef4444; padding: 20px; text-align: center;">缺少必要的列（名称、颜色或数量）</p>';
+                return;
+            }
+
+            // Create a map: by 名称/颜色, sum 数量 and 總額 = sum(数量*价格)
+            const sumMap = new Map();
+
+            excelData['待結款'].data.forEach(row => {
+                const name = String(row[nameIndex] || '').trim();
+                const color = String(row[colorIndex] || '').trim();
+                const qty = parseFloat(row[qtyIndex]) || 0;
+                const price = priceIndex >= 0 ? (parseFloat(row[priceIndex]) || 0) : 0;
+                const rowAmount = qty * price;
+
+                let key = '';
+                if (groupByName && groupByColor) {
+                    key = `${name} | ${color}`;
+                } else if (groupByName) {
+                    key = name;
+                } else if (groupByColor) {
+                    key = color;
+                } else {
+                    key = '全部';
+                }
+
+                if (!sumMap.has(key)) {
+                    sumMap.set(key, {
+                        name: groupByName ? name : '',
+                        color: groupByColor ? color : '',
+                        totalQty: 0,
+                        totalAmount: 0
+                    });
+                }
+
+                const entry = sumMap.get(key);
+                entry.totalQty += qty;
+                entry.totalAmount += rowAmount;
+            });
+
+            // Convert map to array and sort
+            const results = Array.from(sumMap.entries())
+                .map(([key, value]) => ({
+                    key,
+                    ...value,
+                    totalQty: value.totalQty,
+                    totalAmount: value.totalAmount
+                }))
+                .sort((a, b) => {
+                    if (groupByName && a.name !== b.name) {
+                        return a.name.localeCompare(b.name, 'zh-CN');
+                    }
+                    if (groupByColor && a.color !== b.color) {
+                        return a.color.localeCompare(b.color, 'zh-CN');
+                    }
+                    return 0;
+                });
+
+            // Display results: 數量總和 + 總額 (總和*价格 = sum(数量*价格))
+            let html = '<table style="width: 100%; margin-top: 10px;"><thead><tr>';
+            if (groupByName) {
+                html += '<th>名稱</th>';
+            }
+            if (groupByColor) {
+                html += '<th>顏色</th>';
+            }
+            html += '<th>數量總和</th><th>總額</th></tr></thead><tbody>';
+
+            let grandQty = 0;
+            let grandAmount = 0;
+            results.forEach(result => {
+                html += '<tr>';
+                if (groupByName) {
+                    html += `<td>${result.name || '-'}</td>`;
+                }
+                if (groupByColor) {
+                    html += `<td>${result.color || '-'}</td>`;
+                }
+                html += `<td style="font-weight: 600; color: ${result.totalQty < 0 ? '#ef4444' : result.totalQty === 0 ? '#f59e0b' : '#10b981'}">${result.totalQty}</td>`;
+                html += `<td style="font-weight: 600; color: #667eea;">${result.totalAmount.toFixed(2)}</td>`;
+                html += '</tr>';
+                grandQty += result.totalQty;
+                grandAmount += result.totalAmount;
+            });
+
+            html += '</tbody><tfoot><tr style="background: #f3f4f6; font-weight: 600;">';
+            if (groupByName) {
+                html += '<td>總計</td>';
+            }
+            if (groupByColor) {
+                html += '<td></td>';
+            }
+            html += `<td style="color: #667eea;">${grandQty}</td>`;
+            html += `<td style="color: #667eea; font-size: 1.1em;">${grandAmount.toFixed(2)}</td></tr></tfoot></table>`;
+
+            resultsDiv.innerHTML = html;
+        }
+
+        // Initialize - create empty tables
+        renderTables();
+    </script>
+</body>
+</html>
+
