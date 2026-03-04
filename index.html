@@ -1383,6 +1383,20 @@
                 return value || '';
             });
 
+            // 對「待結款」做邏輯檢查：同一筆不可同時有發貨日期和退貨日期
+            if (currentSheet === '待結款') {
+                const shipDateIndex = columns.indexOf('發貨日期');
+                const returnDateIndex = columns.indexOf('退貨日期');
+                if (shipDateIndex >= 0 && returnDateIndex >= 0) {
+                    const shipDate = String(newRow[shipDateIndex] || '').trim();
+                    const returnDate = String(newRow[returnDateIndex] || '').trim();
+                    if (shipDate && returnDate) {
+                        showMessage('同一筆記錄不可同時填發貨日期和退貨日期，請只填其中一個。', 'error');
+                        return;
+                    }
+                }
+            }
+
             if (editingRowIndex >= 0) {
                 excelData[currentSheet].data[editingRowIndex] = newRow;
                 showMessage('記錄已更新', 'success');
@@ -1531,21 +1545,48 @@
             const colorIndex = columns.indexOf('颜色');
             const qtyIndex = columns.indexOf('数量');
             const priceIndex = columns.indexOf('价格');
+            const shipDateIndex = columns.indexOf('發貨日期');
+            const returnDateIndex = columns.indexOf('退貨日期');
 
             if (nameIndex === -1 || colorIndex === -1 || qtyIndex === -1) {
                 resultsDiv.innerHTML = '<p style="color: #ef4444; padding: 20px; text-align: center;">缺少必要的列（名称、颜色或数量）</p>';
                 return;
             }
 
-            // Create a map: by 名称/颜色, sum 数量 and 總額 = sum(数量*价格)
+            // Create a map: by 名称/颜色, sum 數量與金額
+            // 規則：
+            // - 只有發貨日期 → 發貨：+数量，+数量*价格
+            // - 只有退貨日期 → 退貨：-数量，-数量*价格
+            // - 兩個日期都沒填或都填錯 → 視為 0，不計入
             const sumMap = new Map();
 
             excelData['待結款'].data.forEach(row => {
                 const name = String(row[nameIndex] || '').trim();
                 const color = String(row[colorIndex] || '').trim();
-                const qty = parseFloat(row[qtyIndex]) || 0;
+                const qtyRaw = row[qtyIndex];
+                const qty = parseFloat(qtyRaw) || 0;
                 const price = priceIndex >= 0 ? (parseFloat(row[priceIndex]) || 0) : 0;
-                const rowAmount = qty * price;
+
+                const shipDate = shipDateIndex >= 0 ? String(row[shipDateIndex] || '').trim() : '';
+                const returnDate = returnDateIndex >= 0 ? String(row[returnDateIndex] || '').trim() : '';
+
+                // 判斷這一筆是發貨(+1)、退貨(-1) 或忽略(0)
+                let sign = 0;
+                if (shipDate && !returnDate) {
+                    sign = 1;
+                } else if (!shipDate && returnDate) {
+                    sign = -1;
+                } else {
+                    sign = 0;
+                }
+
+                if (sign === 0 || qty === 0) {
+                    // 既沒有有效方向，或數量為 0，則不影響總和
+                    return;
+                }
+
+                const signedQty = sign * qty;
+                const rowAmount = signedQty * price;
 
                 let key = '';
                 if (groupByName && groupByColor) {
@@ -1568,7 +1609,7 @@
                 }
 
                 const entry = sumMap.get(key);
-                entry.totalQty += qty;
+                entry.totalQty += signedQty;
                 entry.totalAmount += rowAmount;
             });
 
